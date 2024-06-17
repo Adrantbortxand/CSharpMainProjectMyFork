@@ -54,8 +54,9 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             Targets.Clear();
 
-            List<Vector2Int> allTargets = GetAllTargets().ToList();
-            if (allTargets.Count == 0) allTargets.Add(GetEnemyTargetBase());
+            Vector2Int enemyTargetBase = GetEnemyTargetBase();
+            List<Vector2Int> allTargets = GetAllTargets().Where(t => !Vector2Int.Equals(t, enemyTargetBase)).ToList();
+            if (allTargets.Count == 0) allTargets.Add(enemyTargetBase);
             SortByDistanceToOwnBase(allTargets);
 
             Vector2Int promisingTarget = GetPromisingTarget(allTargets);
@@ -102,7 +103,7 @@ namespace UnitBrains.Player
 
         private Vector2Int GetEnemyTargetBase()
         {
-            int playerId = IsPlayerUnitBrain ? RuntimeModel.PlayerId : RuntimeModel.BotPlayerId;
+            int playerId = IsPlayerUnitBrain ? Model.RuntimeModel.BotPlayerId : Model.RuntimeModel.PlayerId;
 
             return runtimeModel.RoMap.Bases[playerId];
         }
