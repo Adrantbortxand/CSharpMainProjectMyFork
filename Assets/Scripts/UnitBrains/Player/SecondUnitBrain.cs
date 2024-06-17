@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Model;
 using Model.Runtime.Projectiles;
+using UnityEditor;
 using UnityEngine;
 using Utilities;
 
@@ -8,14 +10,17 @@ namespace UnitBrains.Player
 {
     public class SecondUnitBrain : DefaultPlayerUnitBrain
     {
+        private static int _unitCounter = 0;
         public override string TargetUnitName => "Cobra Commando";
+        private const int MaxTargets = 3;
         private const float OverheatTemperature = 3f;
         private const float OverheatCooldown = 2f;
         private List<Vector2Int> Targets = new List<Vector2Int>();
+        [SerializeField] private int UnitId = ++_unitCounter;
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
-        
+
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
             float overheatTemperature = OverheatTemperature;
@@ -49,8 +54,12 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             Targets.Clear();
 
-            Vector2Int? nearestTargetToBase = GetNearestTargetToBase();
-            Targets.Add(nearestTargetToBase.HasValue ? nearestTargetToBase.Value : GetEnemyTargetBase());
+            List<Vector2Int> allTargets = GetAllTargets().ToList();
+            if (allTargets.Count == 0) allTargets.Add(GetEnemyTargetBase());
+            SortByDistanceToOwnBase(allTargets);
+
+            Vector2Int promisingTarget = GetPromisingTarget(allTargets);
+            Targets.Add(promisingTarget);
 
             return Targets;
             ///////////////////////////////////////
@@ -83,22 +92,12 @@ namespace UnitBrains.Player
             if (_temperature >= OverheatTemperature) _overheated = true;
         }
 
-        private Vector2Int? GetNearestTargetToBase()
+        private Vector2Int GetPromisingTarget(List<Vector2Int> targets)
         {
-            Vector2Int? nearestTarget = null;
+            int numberPromisingGoals = targets.Count <= MaxTargets ? targets.Count : MaxTargets;
+            int promisingGoal = UnitId % numberPromisingGoals;
 
-            float nearestDistance = float.MaxValue;
-            foreach (Vector2Int target in GetAllTargets())
-            {
-                float distance = DistanceToOwnBase(target);
-                if (distance < nearestDistance)
-                {
-                    nearestDistance = distance;
-                    nearestTarget = target;
-                }
-            }
-
-            return nearestTarget;
+            return targets[promisingGoal];
         }
 
         private Vector2Int GetEnemyTargetBase()
